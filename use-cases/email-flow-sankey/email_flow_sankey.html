@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Contact Flow - Sankey Diagram</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card.blue .stat-value { color: #3498db; }
+        .stat-card.cyan .stat-value { color: #00bcd4; }
+        .stat-card.green .stat-value { color: #2ecc71; }
+        .stat-card.orange .stat-value { color: #f39c12; }
+        .stat-card.red .stat-value { color: #e74c3c; }
+        .stat-card.purple .stat-value { color: #9b59b6; }
+        #sankey-chart {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 650px;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .data-note {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #555;
+            font-size: 0.8rem;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Email Contact Flow</h1>
+            <p class="subtitle">EMAIL Channel - Contact Center Journey Analysis</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="report-date">Report Date:</label>
+                <input type="date" id="report-date" value="2025-01-22">
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-value" id="total-emails">3,601</div>
+                <div class="stat-label">Total Emails</div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="stat-value" id="inbound-pct">28%</div>
+                <div class="stat-label">Inbound</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-value" id="outbound-pct">37%</div>
+                <div class="stat-label">Outbound</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-value" id="agent-handled">58%</div>
+                <div class="stat-label">Agent Handled</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-value" id="classified-pct">36%</div>
+                <div class="stat-label">Intent Classified</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-value" id="dropped-pct">7%</div>
+                <div class="stat-label">Dropped</div>
+            </div>
+        </div>
+
+        <div id="sankey-chart"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span>Email Origin</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9b59b6;"></div>
+                <span>Intent Classification</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span>Queue Routing</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Positive Outcomes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Negative Outcomes</span>
+            </div>
+        </div>
+
+        <p class="data-note">Data source: Amazon Connect CTR Events | Channel: EMAIL</p>
+
+        <footer>
+            Email Flow Sankey Visualization | Generated from BigQuery Data
+        </footer>
+    </div>
+
+    <script>
+        // Sankey data from BigQuery query (2025-01-22)
+        const sankeyData = {
+            links: [
+                // Stage 1: Origin -> Intent
+                { source: "Outbound email", target: "Unclassified", value: 1277 },
+                { source: "System/Flow", target: "Unclassified", value: 742 },
+                { source: "Inbound email", target: "Unclassified", value: 303 },
+                { source: "Inbound email", target: "Other intent", value: 150 },
+                { source: "Inbound email", target: "Metering related", value: 123 },
+                { source: "Agent reply", target: "Metering related", value: 120 },
+                { source: "Agent reply", target: "Other intent", value: 108 },
+                { source: "Inbound email", target: "Billing related", value: 97 },
+                { source: "Inbound email", target: "Payments related", value: 88 },
+                { source: "Agent reply", target: "Billing related", value: 85 },
+                { source: "Inbound email", target: "Solar", value: 72 },
+                { source: "Agent reply", target: "Payments related", value: 51 },
+                { source: "Agent reply", target: "Moving home", value: 42 },
+                { source: "Inbound email", target: "Fallback intent", value: 37 },
+                { source: "System/Flow", target: "Payments related", value: 36 },
+                { source: "Agent reply", target: "Solar", value: 33 },
+                { source: "Agent reply", target: "Fallback intent", value: 31 },
+                { source: "Inbound email", target: "Complaints", value: 26 },
+                { source: "Inbound email", target: "Moving home", value: 25 },
+                { source: "Transfer", target: "Other intent", value: 21 },
+                { source: "Outbound email", target: "Other intent", value: 15 },
+                { source: "System/Flow", target: "Other intent", value: 14 },
+                { source: "Outbound email", target: "Metering related", value: 13 },
+                { source: "Transfer", target: "Solar", value: 12 },
+                { source: "Transfer", target: "Billing related", value: 9 },
+                { source: "System/Flow", target: "Billing related", value: 9 },
+                { source: "Transfer", target: "Metering related", value: 8 },
+                { source: "Outbound email", target: "Billing related", value: 8 },
+                { source: "Agent reply", target: "Complaints", value: 7 },
+                { source: "Transfer", target: "Fallback intent", value: 7 },
+                { source: "Outbound email", target: "Solar", value: 6 },
+                { source: "Outbound email", target: "Complaints", value: 5 },
+                { source: "Transfer", target: "Payments related", value: 5 },
+                { source: "Outbound email", target: "Payments related", value: 4 },
+                { source: "Transfer", target: "Moving home", value: 4 },
+                { source: "Outbound email", target: "Fallback intent", value: 3 },
+                { source: "System/Flow", target: "Moving home", value: 3 },
+                { source: "Outbound email", target: "Moving home", value: 1 },
+                { source: "Transfer", target: "Complaints", value: 1 },
+
+                // Stage 2: Intent -> Queue
+                { source: "Unclassified", target: "No queue", value: 2081 },
+                { source: "Unclassified", target: "Dropped Emails queue", value: 241 },
+                { source: "Other intent", target: "No queue", value: 199 },
+                { source: "Payments related", target: "No queue", value: 158 },
+                { source: "Metering related", target: "No queue", value: 150 },
+                { source: "Billing related", target: "No queue", value: 134 },
+                { source: "Metering related", target: "Customer Care queue", value: 98 },
+                { source: "Solar", target: "No queue", value: 96 },
+                { source: "Other intent", target: "Customer Care queue", value: 67 },
+                { source: "Moving home", target: "No queue", value: 57 },
+                { source: "Billing related", target: "Customer Care queue", value: 53 },
+                { source: "Fallback intent", target: "No queue", value: 48 },
+                { source: "Fallback intent", target: "Customer Care queue", value: 24 },
+                { source: "Complaints", target: "No queue", value: 23 },
+                { source: "Solar", target: "Solar queue", value: 17 },
+                { source: "Billing related", target: "Agent Holding queue", value: 16 },
+                { source: "Other intent", target: "Solar queue", value: 14 },
+                { source: "Other intent", target: "Agent Holding queue", value: 14 },
+                { source: "Metering related", target: "Agent Holding queue", value: 14 },
+                { source: "Payments related", target: "Customer Care queue", value: 14 },
+                { source: "Other intent", target: "Specialist queue", value: 12 },
+                { source: "Moving home", target: "Customer Care queue", value: 10 },
+                { source: "Complaints", target: "Agent Holding queue", value: 9 },
+                { source: "Solar", target: "Customer Care queue", value: 6 },
+                { source: "Moving home", target: "Specialist queue", value: 6 },
+                { source: "Payments related", target: "Collections queue", value: 5 },
+                { source: "Complaints", target: "Customer Care queue", value: 5 },
+                { source: "Payments related", target: "Agent Holding queue", value: 5 },
+                { source: "Fallback intent", target: "Specialist queue", value: 3 },
+                { source: "Fallback intent", target: "Agent Holding queue", value: 3 },
+                { source: "Solar", target: "Agent Holding queue", value: 3 },
+                { source: "Billing related", target: "Specialist queue", value: 2 },
+                { source: "Other intent", target: "Collections queue", value: 2 },
+                { source: "Payments related", target: "Specialist queue", value: 2 },
+                { source: "Metering related", target: "Specialist queue", value: 2 },
+                { source: "Complaints", target: "Specialist queue", value: 2 },
+                { source: "Billing related", target: "Dropped Emails queue", value: 2 },
+                { source: "Moving home", target: "Agent Holding queue", value: 2 },
+
+                // Stage 3: Queue -> Outcome
+                { source: "No queue", target: "Agent handled", value: 1812 },
+                { source: "No queue", target: "Other outcome", value: 806 },
+                { source: "Customer Care queue", target: "Agent handled", value: 272 },
+                { source: "Dropped Emails queue", target: "Dropped", value: 243 },
+                { source: "No queue", target: "Discarded", value: 171 },
+                { source: "No queue", target: "Flow terminated", value: 126 },
+                { source: "Agent Holding queue", target: "API processed", value: 55 },
+                { source: "No queue", target: "API processed", value: 27 },
+                { source: "Solar queue", target: "API processed", value: 20 },
+                { source: "Agent Holding queue", target: "Transferred", value: 11 },
+                { source: "Specialist queue", target: "Agent handled", value: 11 },
+                { source: "Specialist queue", target: "Transferred", value: 11 },
+                { source: "Solar queue", target: "Transferred", value: 11 },
+                { source: "Collections queue", target: "Agent handled", value: 8 },
+                { source: "Specialist queue", target: "API processed", value: 8 },
+                { source: "Customer Care queue", target: "API processed", value: 5 },
+                { source: "No queue", target: "Transferred", value: 4 }
+            ]
+        };
+
+        // Define node colors based on category
+        const nodeColors = {
+            // Stage 1: Email Origin (Blue shades)
+            "Inbound email": "#3498db",
+            "Outbound email": "#9b59b6",
+            "Agent reply": "#00bcd4",
+            "Transfer": "#1abc9c",
+            "System/Flow": "#7f8c8d",
+
+            // Stage 2: Intent Classification (Purple/Pink shades)
+            "Unclassified": "#95a5a6",
+            "Billing related": "#e91e63",
+            "Metering related": "#9c27b0",
+            "Payments related": "#673ab7",
+            "Moving home": "#3f51b5",
+            "Solar": "#ff9800",
+            "Complaints": "#f44336",
+            "Fallback intent": "#607d8b",
+            "Other intent": "#795548",
+
+            // Stage 3: Queue Routing (Orange/Yellow shades)
+            "No queue": "#bdc3c7",
+            "Customer Care queue": "#f39c12",
+            "Dropped Emails queue": "#e74c3c",
+            "Agent Holding queue": "#ff5722",
+            "Solar queue": "#ff9800",
+            "Collections queue": "#795548",
+            "Specialist queue": "#9e9e9e",
+
+            // Stage 4: Final Outcomes
+            "Agent handled": "#2ecc71",
+            "Dropped": "#e74c3c",
+            "Discarded": "#c0392b",
+            "Transferred": "#3498db",
+            "API processed": "#00bcd4",
+            "Flow terminated": "#7f8c8d",
+            "Other outcome": "#95a5a6"
+        };
+
+        // Build unique node list
+        const nodeSet = new Set();
+        sankeyData.links.forEach(l => {
+            nodeSet.add(l.source);
+            nodeSet.add(l.target);
+        });
+
+        // Define node order for better visualization
+        const nodeOrder = [
+            // Origins
+            "Inbound email", "Outbound email", "Agent reply", "Transfer", "System/Flow",
+            // Intents
+            "Unclassified", "Billing related", "Metering related", "Payments related",
+            "Moving home", "Solar", "Complaints", "Fallback intent", "Other intent",
+            // Queues
+            "No queue", "Customer Care queue", "Dropped Emails queue", "Agent Holding queue",
+            "Solar queue", "Collections queue", "Specialist queue",
+            // Outcomes
+            "Agent handled", "Dropped", "Discarded", "Transferred", "API processed",
+            "Flow terminated", "Other outcome"
+        ];
+
+        const nodes = nodeOrder.filter(n => nodeSet.has(n));
+        const nodeIndices = {};
+        nodes.forEach((node, idx) => {
+            nodeIndices[node] = idx;
+        });
+
+        // Prepare Plotly data
+        const sources = sankeyData.links.map(l => nodeIndices[l.source]);
+        const targets = sankeyData.links.map(l => nodeIndices[l.target]);
+        const values = sankeyData.links.map(l => l.value);
+
+        // Calculate link colors
+        const linkColors = sankeyData.links.map(l => {
+            const baseColor = nodeColors[l.source] || "#888888";
+            return baseColor + "50";
+        });
+
+        // Calculate node values for labels
+        const totalEmails = 3601;
+        const nodeValues = {};
+        nodes.forEach(n => {
+            let val = 0;
+            sankeyData.links.forEach(l => {
+                if (l.source === n) val += l.value;
+            });
+            if (val === 0) {
+                sankeyData.links.forEach(l => {
+                    if (l.target === n) val += l.value;
+                });
+            }
+            nodeValues[n] = val;
+        });
+
+        const data = [{
+            type: "sankey",
+            orientation: "h",
+            node: {
+                pad: 18,
+                thickness: 22,
+                line: { color: "rgba(255,255,255,0.3)", width: 1 },
+                label: nodes.map(n => {
+                    const val = nodeValues[n];
+                    const pct = ((val / totalEmails) * 100).toFixed(1);
+                    return `${n}\n${val.toLocaleString()} (${pct}%)`;
+                }),
+                color: nodes.map(n => nodeColors[n] || "#888888"),
+                hovertemplate: '%{label}<extra></extra>'
+            },
+            link: {
+                source: sources,
+                target: targets,
+                value: values,
+                color: linkColors,
+                hovertemplate: '%{source.label} → %{target.label}<br>%{value:,} emails<extra></extra>'
+            }
+        }];
+
+        const layout = {
+            font: {
+                family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                size: 11,
+                color: "#ffffff"
+            },
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+            margin: { l: 15, r: 15, t: 15, b: 15 },
+            height: 650
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('sankey-chart', data, layout, config);
+
+        // Update stats
+        function updateStats() {
+            const inbound = 921;  // Sum of all inbound email sources
+            const outbound = 1332;
+            const agentReply = 477;
+            const total = 3601;
+            const agentHandled = 1812 + 272 + 11 + 8;  // Sum of agent handled outcomes
+            const dropped = 243;
+            const classified = total - 2322;  // total - unclassified
+
+            document.getElementById('total-emails').textContent = total.toLocaleString();
+            document.getElementById('inbound-pct').textContent = Math.round((inbound / total) * 100) + '%';
+            document.getElementById('outbound-pct').textContent = Math.round((outbound / total) * 100) + '%';
+            document.getElementById('agent-handled').textContent = Math.round((agentHandled / total) * 100) + '%';
+            document.getElementById('classified-pct').textContent = Math.round((classified / total) * 100) + '%';
+            document.getElementById('dropped-pct').textContent = Math.round((dropped / total) * 100) + '%';
+        }
+
+        updateStats();
+
+        // Date picker handler
+        document.getElementById('report-date').addEventListener('change', function(e) {
+            console.log('Date changed to:', e.target.value);
+            alert('To load data for ' + e.target.value + ', run the SQL query with the new date and update the page.');
+        });
+    </script>
+</body>
+</html>

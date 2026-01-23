@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Contact Flow - Sankey Diagram</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #7B68EE, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-group label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card.purple .stat-value { color: #7B68EE; }
+        .stat-card.green .stat-value { color: #4CAF50; }
+        .stat-card.brown .stat-value { color: #CD853F; }
+        .stat-card.red .stat-value { color: #DC143C; }
+        #sankey-chart {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 600px;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .data-note {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.8rem;
+        }
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #555;
+            font-size: 0.8rem;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Customer Contact Flow</h1>
+            <p class="subtitle">VOICE Channel - Contact Center Journey Analysis</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="report-date">Report Date:</label>
+                <input type="date" id="report-date" value="2025-01-22">
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card purple">
+                <div class="stat-value" id="total-contacts">1,616</div>
+                <div class="stat-label">Total Contacts</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-value" id="new-contacts">76%</div>
+                <div class="stat-label">New Contacts</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-value" id="deflection-rate">20%</div>
+                <div class="stat-label">Auto-Resolution Route</div>
+            </div>
+            <div class="stat-card brown">
+                <div class="stat-value" id="agent-answered">53%</div>
+                <div class="stat-label">Answered by Agent</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-value" id="abandonment-rate">17%</div>
+                <div class="stat-label">Queue Abandonment</div>
+            </div>
+        </div>
+
+        <div id="sankey-chart"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #7B68EE;"></div>
+                <span>Contact Demand</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4CAF50;"></div>
+                <span>Auto-Resolution / Deflection</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #CD853F;"></div>
+                <span>ID&V / Queue</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #DC143C;"></div>
+                <span>Negative Outcomes</span>
+            </div>
+        </div>
+
+        <p class="data-note">Data source: Amazon Connect CTR Events | Channel: VOICE | Inbound contacts only</p>
+
+        <footer>
+            Contact Flow Sankey Visualization | Generated from BigQuery Data
+        </footer>
+    </div>
+
+    <script>
+        // Sankey data from BigQuery query (2025-01-22)
+        const sankeyData = {
+            links: [
+                // Stage 1 -> Stage 2: Contact Type to Routing
+                { source: "New contact", target: "Routed to ID&V", value: 973 },
+                { source: "Return contact", target: "Routed to ID&V", value: 326 },
+                { source: "New contact", target: "Routed to auto-resolution", value: 259 },
+                { source: "Return contact", target: "Routed to auto-resolution", value: 58 },
+
+                // Stage 2 -> Stage 3/4: ID&V Route
+                { source: "Routed to ID&V", target: "ID&V completed", value: 557 },
+                { source: "Routed to ID&V", target: "Queued (no ID&V)", value: 453 },
+                { source: "Routed to ID&V", target: "Abandoned pre-queue", value: 288 },
+
+                // Stage 2 -> Stage 3: Auto-resolution Route
+                { source: "Routed to auto-resolution", target: "Proceeded to ID&V", value: 112 },
+                { source: "Routed to auto-resolution", target: "Disconnected pre-queue", value: 88 },
+                { source: "Routed to auto-resolution", target: "Proceeded to queue", value: 78 },
+                { source: "Routed to auto-resolution", target: "Other deflection outcome", value: 39 },
+
+                // Stage 3 -> Stage 4: Deflection to Queue
+                { source: "Proceeded to queue", target: "Queued (no ID&V)", value: 215 },
+                { source: "Proceeded to ID&V", target: "ID&V completed", value: 111 },
+
+                // Stage 4 -> Stage 5: Final Outcomes
+                { source: "ID&V completed", target: "Answered by agent", value: 465 },
+                { source: "Queued (no ID&V)", target: "Answered by agent", value: 395 },
+                { source: "ID&V completed", target: "Abandoned from queue", value: 142 },
+                { source: "Queued (no ID&V)", target: "Abandoned from queue", value: 136 },
+                { source: "ID&V completed", target: "Other outcome", value: 61 }
+            ]
+        };
+
+        // Define node colors based on category
+        const nodeColors = {
+            // Stage 1: Contact Demand (Purple)
+            "New contact": "#7B68EE",
+            "Return contact": "#9370DB",
+
+            // Stage 2: Routing (Purple/Green transition)
+            "Routed to ID&V": "#8B7EC8",
+            "Routed to auto-resolution": "#4CAF50",
+
+            // Stage 3: Deflection outcomes (Green)
+            "Proceeded to ID&V": "#66BB6A",
+            "Proceeded to queue": "#81C784",
+            "Disconnected pre-queue": "#A5D6A7",
+            "Other deflection outcome": "#C8E6C9",
+
+            // Stage 4: ID&V/Queue (Brown)
+            "ID&V completed": "#CD853F",
+            "Queued (no ID&V)": "#DEB887",
+            "Abandoned pre-queue": "#DC143C",
+
+            // Stage 5: Final outcomes
+            "Answered by agent": "#228B22",
+            "Abandoned from queue": "#DC143C",
+            "Other outcome": "#808080"
+        };
+
+        // Build unique node list preserving order
+        const nodeOrder = [
+            "New contact", "Return contact",
+            "Routed to ID&V", "Routed to auto-resolution",
+            "ID&V completed", "Queued (no ID&V)", "Abandoned pre-queue",
+            "Proceeded to ID&V", "Proceeded to queue", "Disconnected pre-queue", "Other deflection outcome",
+            "Answered by agent", "Abandoned from queue", "Other outcome"
+        ];
+
+        const nodes = nodeOrder.filter(n => {
+            return sankeyData.links.some(l => l.source === n || l.target === n);
+        });
+
+        const nodeIndices = {};
+        nodes.forEach((node, idx) => {
+            nodeIndices[node] = idx;
+        });
+
+        // Prepare Plotly data
+        const sources = sankeyData.links.map(l => nodeIndices[l.source]);
+        const targets = sankeyData.links.map(l => nodeIndices[l.target]);
+        const values = sankeyData.links.map(l => l.value);
+
+        // Calculate link colors (inherit from source with transparency)
+        const linkColors = sankeyData.links.map(l => {
+            const baseColor = nodeColors[l.source] || "#888888";
+            return baseColor + "60"; // Add transparency
+        });
+
+        // Calculate total for percentages
+        const totalContacts = 1616;
+
+        const data = [{
+            type: "sankey",
+            orientation: "h",
+            node: {
+                pad: 20,
+                thickness: 25,
+                line: { color: "rgba(255,255,255,0.3)", width: 1 },
+                label: nodes.map(n => {
+                    // Calculate node value (sum of outgoing or incoming)
+                    let nodeValue = 0;
+                    sankeyData.links.forEach(l => {
+                        if (l.source === n) nodeValue += l.value;
+                    });
+                    if (nodeValue === 0) {
+                        sankeyData.links.forEach(l => {
+                            if (l.target === n) nodeValue += l.value;
+                        });
+                    }
+                    const pct = ((nodeValue / totalContacts) * 100).toFixed(1);
+                    return `${n}\n${nodeValue.toLocaleString()} (${pct}%)`;
+                }),
+                color: nodes.map(n => nodeColors[n] || "#888888"),
+                hovertemplate: '%{label}<extra></extra>'
+            },
+            link: {
+                source: sources,
+                target: targets,
+                value: values,
+                color: linkColors,
+                hovertemplate: '%{source.label} → %{target.label}<br>%{value:,} contacts<extra></extra>'
+            }
+        }];
+
+        const layout = {
+            font: {
+                family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                size: 12,
+                color: "#ffffff"
+            },
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+            margin: { l: 20, r: 20, t: 20, b: 20 },
+            height: 600
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('sankey-chart', data, layout, config);
+
+        // Update stats calculations
+        function updateStats() {
+            const newContacts = 973 + 259;
+            const returnContacts = 326 + 58;
+            const total = newContacts + returnContacts;
+            const autoResolution = 259 + 58;
+            const answeredByAgent = 465 + 395;
+            const abandonedFromQueue = 142 + 136;
+
+            document.getElementById('total-contacts').textContent = total.toLocaleString();
+            document.getElementById('new-contacts').textContent = Math.round((newContacts / total) * 100) + '%';
+            document.getElementById('deflection-rate').textContent = Math.round((autoResolution / total) * 100) + '%';
+            document.getElementById('agent-answered').textContent = Math.round((answeredByAgent / total) * 100) + '%';
+            document.getElementById('abandonment-rate').textContent = Math.round((abandonedFromQueue / total) * 100) + '%';
+        }
+
+        updateStats();
+
+        // Date picker handler (for future dynamic loading)
+        document.getElementById('report-date').addEventListener('change', function(e) {
+            console.log('Date changed to:', e.target.value);
+            // In production, this would trigger a new BigQuery request
+            alert('To load data for ' + e.target.value + ', run the SQL query with the new date and update the page.');
+        });
+    </script>
+</body>
+</html>

@@ -259,6 +259,45 @@ ORDER BY month DESC
 
 ---
 
+## Direct Debit Metrics
+
+### How many customers have active direct debits?
+
+```sql
+SELECT
+  dd_status_at_month_end,
+  COUNT(DISTINCT account_id) AS customers
+FROM `soe-prod-data-curated.soe_junifer_model.w_monthly_active_payment_attributes_d`
+WHERE month_end = DATE_TRUNC(CURRENT_DATE(), MONTH) + INTERVAL 1 MONTH - INTERVAL 1 DAY
+GROUP BY dd_status_at_month_end
+ORDER BY customers DESC
+```
+
+**DD status values:**
+- `Active Fixed` - Fixed amount DD
+- `Active Fixed - Seasonal` - Seasonal DD
+- `Active Variable` - Variable DD
+- `Cancelled` - DD cancelled
+- `Never DD` - Never had DD
+- `Failed` - DD failed
+
+### DD payment success rate
+
+```sql
+SELECT
+  month_end,
+  SUM(successful_dd_payments_in_month_count) AS successful,
+  SUM(failed_dd_payments_in_month_count) AS failed,
+  SAFE_DIVIDE(SUM(successful_dd_payments_in_month_count),
+    SUM(successful_dd_payments_in_month_count) + SUM(failed_dd_payments_in_month_count)) AS success_rate
+FROM `soe-prod-data-curated.soe_junifer_model.w_monthly_active_payment_attributes_d`
+WHERE month_end >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+GROUP BY month_end
+ORDER BY month_end DESC
+```
+
+---
+
 ## Tips for Building Queries
 
 1. **Always use the SCD2 filter for enriched tables**: `WHERE meta_effective_to_timestamp = TIMESTAMP('9999-01-01')`

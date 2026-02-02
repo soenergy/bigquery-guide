@@ -126,6 +126,7 @@ Payments, direct debits, account balances, debt, and collections.
 |---------|------------|-------------|
 | `junifer_enriched` | `payment` | Payment transactions |
 | `junifer_enriched` | `direct_debit`, `direct_debit_inst` | DD setup and instructions |
+| `soe_junifer_model` | `w_monthly_active_payment_attributes_d` | **Best for DD status** - monthly snapshot with DD status, amounts, payment history |
 | `junifer_enriched` | `account_balance` | Account balances |
 | `junifer_enriched` | `dunning_inst` | Dunning instances |
 | `nova_be_tickets_enriched` | `dca_account_allocation` | DCA allocations |
@@ -281,6 +282,7 @@ Financial reporting and reconciliation.
 | Meter readings | `soe_junifer_model.w_actual_meterreads` |
 | Smart installs | `nova_be_customers_enriched.smart_meter_bookings` |
 | Debt/DCA | `nova_be_tickets_enriched.dca_account_allocation` |
+| DD status | `soe_junifer_model.w_monthly_active_payment_attributes_d` |
 | App errors | `nova_customers_enriched.event_logs` |
 | Dataflow health | `soe_dataflows.w_df_ftp_info_d` |
 

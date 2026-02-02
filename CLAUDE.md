@@ -44,6 +44,7 @@ Without this filter, you'll get historical versions of each record.
 | **Debt / DCA allocations** | `nova_be_tickets_enriched.dca_account_allocation` |
 | **DCA performance** | `dca_enriched.pastdue`, `conexus`, etc. |
 | **Dunning** | `junifer_enriched.dunning_inst` |
+| **Direct debit status** | `soe_junifer_model.w_monthly_active_payment_attributes_d` (use current month_end) |
 | **Meter readings** | `nova_be_assets_enriched.meter_reading`, `soe_junifer_model.w_actual_meterreads` |
 | **Digital engagement** | `soe_junifer_model.digital_user_engagement` |
 | **Digital journey KPIs** | `soe_junifer_model.digital_journey_performance` |
@@ -308,4 +309,11 @@ FROM soe_dataflows.w_df_ftp_info_d
 WHERE Status != 'SUCCESS'
   AND ReceivedDate >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
 -- Check log_message for error details
+```
+
+**Direct debit status (current month):**
+```sql
+FROM soe_junifer_model.w_monthly_active_payment_attributes_d
+WHERE month_end = DATE_TRUNC(CURRENT_DATE(), MONTH) + INTERVAL 1 MONTH - INTERVAL 1 DAY
+-- dd_status_at_month_end: 'Active Fixed', 'Active Fixed - Seasonal', 'Active Variable', 'Cancelled', 'Never DD', 'Failed'
 ```

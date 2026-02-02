@@ -198,3 +198,40 @@ GROUP BY a.number
 -- Account → Product → Meter Point relationship
 -- (Requires joining through product tables)
 ```
+
+---
+
+## soe_junifer_model - Analytics Models
+
+Pre-built analytical models for common reporting needs.
+
+### `w_monthly_active_payment_attributes_d` - Payment & DD Status
+
+Monthly snapshot of account payment attributes including direct debit status, payment history, and collections metrics.
+
+**Key fields:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `month_end` | DATE | Month end date (use current month end for current state) |
+| `account_id` | INTEGER | Account ID |
+| `account_number` | STRING | Account number |
+| `dd_status_at_month_end` | STRING | DD status: 'Active Fixed', 'Active Fixed - Seasonal', 'Active Variable', 'Cancelled', 'Never DD', 'Failed' |
+| `dd_amount_at_month_end` | NUMERIC | DD amount |
+| `dd_instruction_status` | STRING | DD instruction status |
+| `dunning_status_at_month_end` | BOOL | In dunning? |
+| `account_balance` | NUMERIC | Account balance |
+| `successful_dd_payments_in_month_count` | INT64 | Successful DD payments in month |
+| `failed_dd_payments_in_month_count` | INT64 | Failed DD payments in month |
+
+**Common query - Customers with active direct debits:**
+```sql
+SELECT
+  dd_status_at_month_end,
+  COUNT(DISTINCT account_id) AS customers
+FROM `soe-prod-data-curated.soe_junifer_model.w_monthly_active_payment_attributes_d`
+WHERE month_end = DATE_TRUNC(CURRENT_DATE(), MONTH) + INTERVAL 1 MONTH - INTERVAL 1 DAY
+GROUP BY dd_status_at_month_end
+ORDER BY customers DESC
+```
+
+**Note:** For current state, set `month_end` to end of current month. For historical analysis, use any previous month end.

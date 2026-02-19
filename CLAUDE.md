@@ -54,6 +54,7 @@ Without this filter, you'll get historical versions of each record.
 | **Marketing consent** | `dotdigital.customer_marketing_master` (`dotdigital_subscription_status`) |
 | **Customer interests** | `nova_be_customers_enriched.customer_setting` (EV, smart meter, EV tariff) |
 | **Renewal rate by consent** | See `use-cases/marketing-consent-renewal.md` |
+| **Tariff cost comparison** | See `use-cases/tariff-cost-comparison.md` |
 | **Industry dataflows** | `soe_dataflows.w_df_ftp_info_d` (file health), `Elec_D0010` (reads), `Elec_D0030` (settlement), `Elec_D0300` (switches), `Gas_RET` (rejections) |
 | **Bill delivery** | `soe_operations_report.bill_delivery` |
 
@@ -234,6 +235,7 @@ Amazon Connect → Junifer:
 - `use-cases/contact-deflection.md` - Email/IVR deflection, intents, self-service correlation, containment analysis
 - `use-cases/weekly-deflection-report.md` - Weekly deflection funnel report (all channels, all stages)
 - `use-cases/marketing-consent-renewal.md` - Renewal/churn rates by marketing consent, interests breakdown
+- `use-cases/tariff-cost-comparison.md` - Compare expected cost across tariffs using HH consumption data
 
 ### Common Patterns
 

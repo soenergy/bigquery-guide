@@ -78,7 +78,14 @@ Meter readings, consumption data, and smart meter telemetry.
 | `soe_dataflows` | `Elec_D0010` | Industry meter readings (electricity) |
 | `soe_dataflows` | `Gas_MBR`, `Gas_MRI` | Industry meter data (gas) |
 
-**Note:** Consider also CentreStage/xreads data if available for extended consumption history.
+| `soe_xreads` | `w_xreads_hh_elec_f` | **Half-hourly electricity consumption** from smart meters (ESG/xreads) |
+
+**Key fields in `w_xreads_hh_elec_f`:**
+- `import_mpan` (INTEGER): Electricity meter point number
+- `timestamp` (TIMESTAMP): Half-hourly interval timestamp
+- `primary_value` (NUMERIC): kWh consumed in that half hour
+- `msn`: Meter serial number
+- `reading_type`: Usually 'Routine' for smart meters
 
 ---
 
@@ -93,6 +100,18 @@ Product catalog, tariff structures, and pricing.
 | `junifer_enriched` | `product`, `price_plan` | Billing product configuration |
 | `junifer_enriched` | `product_bundle`, `product_bundle_dfn` | Customer tariff assignments |
 | `junifer_enriched` | `product_bundle.contracted_to_dttm` | Renewal dates |
+| `soe_junifer_model` | `w_account_product_history_d` | **Account product/agreement history** - current & ending tariffs, contract dates, MPAN |
+
+**Key fields in `w_account_product_history_d`:**
+- `Account_number` (STRING): Junifer account number
+- `mpxn` (STRING): Meter point reference (MPAN for elec, MPRN for gas)
+- `fuel_type` (STRING): Elec/Gas
+- `ending_tariff_display_name` / `ending_tariff_name`: Current tariff
+- `ending_tariff_end_date` (DATE): Contract end date
+- `active_tarifff_flag` (STRING, note 3 f's): 'Y' for active tariff
+- `most_recent_tariff_flag` (STRING): 'Y' for most recent
+- `renewal_days_remaining` (INTEGER): Days until renewal
+- `fixed_svt` (STRING): Fixed vs SVT indicator
 
 **Key queries:**
 - Current tariff: `product_bundle` WHERE `meta_effective_to_timestamp = '9999-01-01'`

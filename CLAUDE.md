@@ -55,6 +55,8 @@ Without this filter, you'll get historical versions of each record.
 | **Customer interests** | `nova_be_customers_enriched.customer_setting` (EV, smart meter, EV tariff) |
 | **Renewal rate by consent** | See `use-cases/marketing-consent-renewal.md` |
 | **Tariff cost comparison** | See `use-cases/tariff-cost-comparison.md` |
+| **HH electricity consumption** | `soe_xreads.w_xreads_hh_elec_f` (`import_mpan`, `timestamp`, `primary_value`) |
+| **Account product/agreement history** | `soe_junifer_model.w_account_product_history_d` (tariffs, contract dates, MPAN) |
 | **Industry dataflows** | `soe_dataflows.w_df_ftp_info_d` (file health), `Elec_D0010` (reads), `Elec_D0030` (settlement), `Elec_D0300` (switches), `Gas_RET` (rejections) |
 | **Bill delivery** | `soe_operations_report.bill_delivery` |
 

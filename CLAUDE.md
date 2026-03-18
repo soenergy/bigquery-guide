@@ -56,6 +56,8 @@ Without this filter, you'll get historical versions of each record.
 | **Renewal rate by consent** | See `use-cases/marketing-consent-renewal.md` |
 | **Industry dataflows** | `soe_dataflows.w_df_ftp_info_d` (file health), `Elec_D0010` (reads), `Elec_D0030` (settlement), `Elec_D0300` (switches), `Gas_RET` (rejections) |
 | **Bill delivery** | `soe_operations_report.bill_delivery` |
+| **Outbound emails** | `nova_be_communications_enriched.email_messages` (in `soe-prod-data-curated`) |
+| **Duplicate/repeated emails** | See `use-cases/duplicate-emails.md` |
 
 ### ⚠️ IMPORTANT: Freshdesk is Deprecated
 
@@ -234,6 +236,7 @@ Amazon Connect → Junifer:
 - `use-cases/contact-deflection.md` - Email/IVR deflection, intents, self-service correlation, containment analysis
 - `use-cases/weekly-deflection-report.md` - Weekly deflection funnel report (all channels, all stages)
 - `use-cases/marketing-consent-renewal.md` - Renewal/churn rates by marketing consent, interests breakdown
+- `use-cases/duplicate-emails.md` - Identifying repeated/duplicate customer emails, export by account
 
 ### Common Patterns
 

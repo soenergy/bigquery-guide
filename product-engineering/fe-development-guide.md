@@ -87,14 +87,17 @@ pnpm lint:smart-meter-booking
 
 ## Self-Review Checklist (before every commit)
 
-1. **Unused imports** — did you delete any code? Check every import still has a reference.
-2. **Duplicate keys** — if you touched `mapGetters`, none of those names should also be in explicit `computed`.
-3. **Line length** — scan new lines. Over 80 chars (excluding string values)? Break at `=`, `?`, operators.
-4. **Template formatting** — multi-attribute elements must have content on its own line between `>` and `</tag>`.
-5. **Object key quotes** — remove quotes from keys that are valid JS identifiers (no hyphens/spaces).
-6. **Tests** — do changes have coverage? Tests assert on DOM/props, not `wrapper.vm` internals.
-7. **Scope** — are you changing anything beyond what the ticket asks for?
-8. **PR description** — does it explain the business reason, not just what changed?
+1. **TODO/FIXME comments** — grep new files for `TODO`/`FIXME` and remove them. They always trigger SonarCloud `S1135`.
+2. **Unused imports** — did you delete any code? Check every import still has a reference.
+3. **Duplicate keys** — if you touched `mapGetters`, none of those names should also be in explicit `computed`.
+4. **Line length** — scan new lines. Over 80 chars (excluding string values)? Break at `=`, `?`, operators.
+5. **Template formatting** — multi-attribute elements must have content on its own line between `>` and `</tag>`.
+6. **Object key quotes** — remove quotes from keys that are valid JS identifiers (no hyphens/spaces).
+7. **Nested ternaries** — SonarCloud `S3358`. Extract to if/else or a helper function.
+8. **Tests** — do changes have coverage? Tests assert on DOM/props, not `wrapper.vm` internals.
+9. **Scope** — are you changing anything beyond what the ticket asks for?
+10. **PR description** — does it explain the business reason, not just what changed?
+11. **SonarCloud** — after pushing, query the API (see SonarCloud section above) to check for 0 new code smells before requesting review.
 
 ---
 
@@ -199,6 +202,118 @@ gh run list --branch <branch-name>
 # View PR details
 gh pr view <pr-number>
 ```
+
+---
+
+## Branch Naming
+
+| Repo | Convention | Example |
+|------|-----------|---------|
+| `fe-nova` | `{type}/SO-XXXXX_{kebab-desc}` | `task/SO-29475_meter-exclusion-list` |
+| `fe-monorepo` | `{type}/SO-XXXXX_{kebab-desc}` | `bug/SO-29688_smbp-exchange-subtext` |
+
+Valid type prefixes: `task/`, `bug/`, `fix/`. **Not** `feat/`, `chore/`, etc.
+
+Use `SO-NONE` or `SO-00000` when there's no Jira ticket.
+
+PR title: `SO-XXXXX: {short description}` (e.g. `SO-29956: Show SMEX tooltip and rename troubleshooting appointment type`).
+
+### Never rename a branch with an open PR
+
+GitHub silently closes the PR rather than redirecting it. If you need to change a branch name (e.g., to add a NOFF suffix), create a new branch + new PR instead.
+
+---
+
+## SonarCloud Quality Gate
+
+### Key rules that will block your PR
+| Rule | What it catches |
+|------|----------------|
+| `S1135` | TODO/FIXME comments — **always** triggers, remove before pushing |
+| `S3358` | Nested ternaries — extract to if/else or helper functions |
+| `S3366` | Public fields that should be private |
+| `S4055` | Unused interfaces |
+| Cognitive complexity | Functions with complexity > 15 |
+| `any` type | Explicit `any` in TypeScript |
+
+Quality gate threshold: **0 new code smells allowed**.
+
+### Pre-push: grep for TODO/FIXME
+Always scan new files before pushing — a single TODO comment will fail the quality gate and require an extra commit + CI cycle.
+
+```bash
+grep -rn "TODO\|FIXME" path/to/new/files/
+```
+
+### Check SonarCloud after pushing
+Query the API to verify 0 new issues before requesting review:
+
+```bash
+SONAR_TOKEN=$(cat ~/.config/sonarcloud/token)
+curl -s -u "$SONAR_TOKEN:" \
+  "https://sonarcloud.io/api/issues/search?componentKeys=soenergy_fe-nova&pullRequest=<PR_NUMBER>&inNewCodePeriod=true" \
+  | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for issue in data.get('issues', []):
+    comp = issue.get('component','').split(':')[-1]
+    print(f'{issue.get(\"rule\")}: {issue.get(\"message\")} ({comp}:{issue.get(\"line\")})')
+print(f'Total: {data.get(\"total\", 0)}')
+"
+```
+
+For fe-monorepo, use `componentKeys=soenergy_fe-monorepo`.
+
+Fallback (if no SonarCloud token):
+```bash
+gh api repos/soenergy/fe-nova/issues/<PR_NUMBER>/comments \
+  --jq '.[] | select(.user.login | test("sonar"; "i")) | .body'
+```
+
+SonarCloud exclusions: `src/api/hasura/generated/**`, `src/api/backoffice/generated/**`, test files.
+
+---
+
+## Vercel Previews
+
+fe-nova and fe-monorepo PRs get Vercel preview deployments at `*.preview.soenergy.co`.
+
+### Check deployment status
+```bash
+VERCEL_TOKEN=$(python3 -c "import json; print(json.load(open('$HOME/.config/vercel/auth.json'))['token'])")
+TEAM_ID="team_t8yrLwYKM3BxZfvw3bpdZXom"
+
+# List recent deployments for a project
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v6/deployments?teamId=$TEAM_ID&app=fe-nova&limit=20" \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for d in data.get('deployments', []):
+    pr = d.get('meta', {}).get('githubPrId', '')
+    print(d['uid'], '|', d['state'], '|', f'PR {pr}', '|', d.get('url',''))
+"
+```
+
+### Get build error logs
+```bash
+DEPLOYMENT_ID="dpl_xxxx"
+curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
+  "https://api.vercel.com/v2/deployments/$DEPLOYMENT_ID/events?teamId=$TEAM_ID&builds=1" \
+  | python3 -c "
+import json, sys
+for line in sys.stdin:
+    try:
+        e = json.loads(line)
+        if e.get('type') == 'stderr' or (e.get('type') == 'stdout' and 'error' in e.get('payload', {}).get('text','').lower()):
+            print(e.get('payload', {}).get('text',''))
+    except: pass
+"
+```
+
+Key values:
+- Team: `So Energy` / ID: `team_t8yrLwYKM3BxZfvw3bpdZXom`
+- Projects: `fe-nova`, `fe-nexus`, `fe-nexus-histoire`
 
 ---
 

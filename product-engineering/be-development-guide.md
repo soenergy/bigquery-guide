@@ -31,6 +31,16 @@ Context for working on **be-microservices** (Kotlin/Spring), **be-assets**, **be
 
 `_NOFF` = no feature flag (work ships without a flag). Use `_OFF` if the work is behind a feature flag.
 
+PR title: `SO-XXXXX: {short description}` (e.g. `SO-29730: Add bulk upload endpoint for exchange eligibility`).
+
+### Check NOFF/OFF CI gating before naming the branch
+
+BE CI workflows may gate certain checks based on branch name suffix. Before creating your first branch on a BE story, **read the CI workflow file** to understand gating conditions. Discovering the NOFF requirement mid-work means renaming, which means a new PR (see below).
+
+### Never rename a branch with an open PR
+
+GitHub silently closes the PR instead of redirecting it. If you need to change a branch name (e.g., to add `_NOFF`), create a new branch (`git checkout -b new-branch`), push it, and raise a fresh PR. The old PR is lost.
+
 ---
 
 ## Flyway Migrations
@@ -184,7 +194,43 @@ gh run list --branch <branch-name>
 
 ---
 
+## Codegen
+
+### `codegen:backoffice` is manual
+After a BE deployment that adds/changes API endpoints, `pnpm run codegen:backoffice` must be run **manually** in the FE repo to regenerate types. Only `codegen:hasura` is automated in CI.
+
+When writing hand-rolled types as a temporary codegen substitute (e.g., shipping FE before BE is deployed), state clearly in the PR description that codegen needs to be run after BE is deployed.
+
+---
+
+## Delivery Process
+
+### Multi-repo feature order
+1. **BE migration** merges and deploys
+2. **Hasura config** updated (manually track new tables/fields with correct permissions)
+3. **FE codegen** run (`pnpm run codegen:backoffice`) if API changed
+4. **FE PR** merges
+5. **QA** on production
+6. **Story closed** in Jira
+
+### Keeping artefacts in sync
+When making changes to a story, always update in sync:
+1. **Code** — the actual implementation
+2. **Jira comment** — the implementation plan posted as a comment on the story
+3. **PR description** — if a PR has already been raised
+
+Story description (overview + acceptance criteria) — ask before editing, the PM may want to write it themselves.
+
+### Template vs error CSV distinction
+When building upload UIs, explicitly distinguish between:
+- **Input schema (template)** — what users upload (e.g., 6 columns)
+- **Output schema (errors)** — what users download after failure (e.g., 8 columns with error details)
+
+Don't reuse headers from one for the other. Think through the user journey before sharing code between them.
+
+---
+
 ## References
 
-- FE development guide: `engineering/fe-development-guide.md` (this repo)
+- FE development guide: `product-engineering/fe-development-guide.md` (this repo)
 - BigQuery data guide: `CLAUDE.md` (this repo)

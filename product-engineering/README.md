@@ -8,6 +8,7 @@ Institutional knowledge for working across the So Energy engineering stack. Use 
 |------|---------------|
 | `fe-development-guide.md` | Nova, SMBP, IMBP, Nexus — Vue conventions, PR process, CI checks, testing, SonarCloud, Vercel previews, branch naming, GraphQL, dependencies |
 | `be-development-guide.md` | be-microservices — Kotlin/Flyway, protobuf, feature flags, on-demand CI, deployment order, codegen, delivery process, release process |
+| `pr-review-patterns.md` | Common review feedback from FE reviewers — codegen, const enums, naming consistency, nested ternaries, test conventions |
 | `prodeng-status.md` | Generic `/prodeng` Claude Code command — tracks in-flight Jira stories, GitHub PRs, CI status, reviews, blockers, QA evidence, preview environments |
 
 ## How to set up

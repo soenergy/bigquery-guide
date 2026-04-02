@@ -1,6 +1,6 @@
 # So Energy FE Development Guide
 
-Context for working across **fe-nova** (agent/customer Vue app) and **fe-monorepo** (SMBP and other standalone Vue apps).
+Context for working across **fe-nova** (agent/customer Vue app), **fe-monorepo** (SMBP and other standalone Vue apps), and **fe-nexus** (MyAccount rebuild).
 
 ---
 
@@ -12,9 +12,15 @@ Context for working across **fe-nova** (agent/customer Vue app) and **fe-monorep
 | **SMBP** | `fe-monorepo` (`smart-meter-booking`) | Smart Meter Booking Portal — customer-facing standalone app |
 | **IMBP** | `fe-monorepo` (`in-home-metering-booking`) | In-Home Metering Booking Portal — booking flow for meter exchanges |
 | **BE** | `be-microservices` | Kotlin/Spring microservices (Flyway for DB migrations) |
+| **Nexus** | `fe-nexus` | MyAccount rebuild — customer-facing, Vue 3 + Composition API |
 | **Hasura** | manual config | GraphQL layer over PostgreSQL — Nova and FE use Hasura for most reads |
 
 **Data flow**: Customer/agent action → FE → Hasura (GraphQL) → BE → PostgreSQL
+
+### Vue API: Options vs Composition
+- **fe-nova**: Options API (Vue 2 → 3 migration in progress)
+- **fe-nexus**: Composition API for all new components
+- **fe-monorepo**: Options API (Vue 2-era apps)
 
 ---
 
@@ -51,6 +57,55 @@ When checks fail transiently (network, flaky tests): rerun with `gh run rerun <i
 
 ### Hasura schema check
 A Hasura check failure in an FE PR is **expected** if it depends on a table/field not yet tracked in Hasura prod (e.g. a BE migration not yet merged). Merge BE + do Hasura config first.
+
+---
+
+## TypeScript Conventions
+
+### Constant naming
+Constants in `UPPERCASE_SNAKE_CASE`. Include units in names to avoid ambiguity:
+- `MAX_RETRY_ATTEMPTS`, `TIMEOUT_IN_MS`, `AMOUNT_IN_PENCE`
+
+### External resources
+Separate API calls and third-party plugin integrations into their own folder/file so they can be imported as regular modules and easily mocked during testing.
+
+---
+
+## GraphQL Workflow
+
+Queries and mutations are written in `.graphql` files. Codegen watches these files and outputs TypeScript types + Document objects.
+
+```
+.graphql file → codegen → TypeScript types + Document → graphql-request + Tanstack Query
+```
+
+- **Full type safety**: if a Hasura column is removed, the FE build fails
+- **Never edit generated files** in `src/api/backoffice/generated/` or `src/api/hasura/generated/` directly
+- After changing `.graphql` files, run the corresponding codegen command (see BE Development Guide > Codegen)
+
+### Local codegen against on-demand BE
+To generate types from a BE on-demand environment (before BE is merged to main):
+1. Add to your `.env` file: `SO_X_BRANCH_NAME=so-123456` (Nova) or `VITE_X_BRANCH_NAME=so-123456` (Nexus)
+2. Run `npm run codegen`
+3. The Header Injector will use the env var automatically
+
+**Limitation**: Header Injector doesn't work with Hasura and ARK endpoints — only `portal-api-gateway`, `portal-api-gateway-v2`, and `backoffice-api-gateway`.
+
+---
+
+## Dependency Management
+
+### Installing/updating packages
+- CI must use `npm ci` or `pnpm install --frozen-lockfile` — never `npm install`
+- Commit `package.json` and `package-lock.json` together in the same PR
+- PR description must explain **why** the dependency is needed
+- Any change to `package.json` or lock files requires **CODEOWNER approval**
+- Only import what you use — keep bundles small and tree-shakable
+
+### Reviewing dependency PRs
+- Verify the package is from an official source (not typosquatting)
+- Ensure both `package.json` and lock file are updated
+- Be wary of large, unexplained lockfile churn — red flag
 
 ---
 
@@ -164,6 +219,51 @@ This puts `data-testid` and `onClick` on the `<button>`, and renders the title a
 
 ### Don't run tests locally
 Push and let CI run them — local `npm run test` / `npx vitest` not reliable in this setup.
+
+---
+
+## Cypress E2E Testing
+
+### What to test
+E2E tests should cover **critical user journeys** and business-critical flows:
+- Complete user workflows (e.g., move-in, payment submission, booking flow)
+- Multi-step processes integrating multiple components
+- Core business functionality that would break the app if failed
+
+### What NOT to test in E2E
+- Static text validation (e.g., checking a page title exists)
+- Basic component rendering
+- CSS styling details
+- Component behaviour that unit tests already cover (e.g., Vuetify sort buttons)
+
+### Selector strategy: semantic-first
+Prefer semantic selectors that mirror how users interact — these survive refactoring and catch accessibility issues:
+
+```js
+// ✅ Preferred — semantic
+cy.findByRole('button', { name: 'Priority Services' }).click()
+
+// ✅ Acceptable — test ID as performance anchor
+cy.get('[data-testid="psr-button"]').click()
+
+// ❌ Avoid — brittle CSS selectors
+cy.get('.btn-primary.psr-section > button').click()
+```
+
+`findByRole()` is superior because it survives component changes (e.g., `<button>` → `<input type="button">`), works with accessible names, and tests accessibility compliance alongside functionality.
+
+**Known components where `findByRole` doesn't work** (due to Vuetify wrapping): `SoAlert`, `SoTextField`, `SoDatePicker`, `SoSelect`. Use `data-testid` for these.
+
+### File structure
+```
+e2e/          — test files, organised by feature/domain
+page-objects/ — reusable UI interactions
+locators/     — centralised selectors
+utils/        — shared utilities (e.g., GraphQL mocking)
+```
+
+### Note: E2E vs unit test selectors
+The semantic-first approach applies to **E2E tests** (user journeys against a running app). **Unit tests** (component tests with `@vue/test-utils`) can use `data-test-id` selectors as documented in the Vue Testing Conventions section above — different contexts, different trade-offs.
 
 ---
 
@@ -315,9 +415,33 @@ Key values:
 - Team: `So Energy` / ID: `team_t8yrLwYKM3BxZfvw3bpdZXom`
 - Projects: `fe-nova`, `fe-nexus`, `fe-nexus-histoire`
 
+### QA with on-demand BE
+To share a preview environment connected to a BE on-demand environment for QA:
+1. Open the Vercel preview URL
+2. Click "Connect to on-demand BE" in the Header Injector widget
+3. Enter the Jira ticket number (e.g., `SO-29721`)
+4. Click "Share Link" — generates a URL with the on-demand header baked in
+5. Share that URL with QA
+
+If changes are BE-only (no FE PR), use Nova staging directly with the Header Injector.
+
+---
+
+## Staging Test Accounts
+
+Staging accounts are synced from Junifer via `https://nova.staging.soenergy.co/admin/sync-accounts` (one-off or automatic). See BE Development Guide for more detail.
+
+Cypress e2e tests use several staging accounts (configured in `common.config.js`). If a test account's data goes stale (e.g., DD rejections, expired tariffs), it can cause flaky e2e tests. Check the account state in staging before investigating test failures.
+
+To create a login for a synced account: Nova > User List > Create User with the account number.
+
 ---
 
 ## References
 
+- FE Guidelines: https://soenergy.atlassian.net/wiki/spaces/FD/pages/1244463133/FE+Guidelines
 - FE Code Review Guide: https://soenergy.atlassian.net/wiki/spaces/FD/pages/3770286149/FE+Code+Review+Guide
+- Cypress E2E Testing Guidelines: https://soenergy.atlassian.net/wiki/spaces/FD/pages/4875976755/Cypress+E2E+Testing+Guidelines
+- Backend On-Demand with FE: https://soenergy.atlassian.net/wiki/spaces/FD/pages/4791730264/How+to+use+Backend+On-Demand+with+Frontend+environments
+- NPM Package Management: https://soenergy.atlassian.net/wiki/spaces/FD/pages/4891344946/How+to+update+install+NPM+packages
 - BigQuery data guide: https://github.com/soenergy/bigquery-guide

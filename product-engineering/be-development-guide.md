@@ -56,6 +56,12 @@ git ls-tree origin/main kotlin-services/services/be-customers/service/src/main/r
 
 Rename your migration files to the next available version if there's a clash.
 
+### Checksum mismatch on on-demand
+Flyway checksum records persist through on-demand re-runs. If you see an "Applied to database / Resolved locally" checksum error after changing a migration:
+1. Connect to your **on-demand** DB (has `-so-<TICKET_NUMBER>` suffix — make sure it's not staging/prod)
+2. Delete the problematic row from `flyway_schema_history`
+3. Re-run the on-demand pipeline
+
 ### No-op migration pitfall
 On-demand CI environments have their own DB. If the environment was created from an older main, it may be missing migrations. A no-op migration (empty `-- no-op` file) forces Flyway to run and brings the environment in sync. However:
 - **Do not include no-op migrations in PRs** — close and reopen with a clean branch instead
@@ -199,6 +205,12 @@ gh run list --branch <branch-name>
 ### Approvals
 - BE PRs require **1 approval** (unlike FE which requires 2)
 
+### Release process
+Our responsibility ends at **merging to main**. After merge:
+- CI builds and deploys to staging automatically
+- A senior engineer approves production deployment via **#backend-releases** Slack channel
+- FE releases are different — auto-deploy on merge via Vercel, no approval gate
+
 ---
 
 ## Codegen
@@ -237,7 +249,27 @@ Don't reuse headers from one for the other. Think through the user journey befor
 
 ---
 
+## Staging Test Accounts
+
+Staging accounts are synced from Junifer. Many are auto-synced; you can also sync manually:
+
+**One-off sync**: Use the Nova staging sync page at `https://nova.staging.soenergy.co/admin/sync-accounts`
+
+**Automatic sync**: Can also be enabled from the same Nova staging sync page.
+
+**Create a login**: Nova > User List > Create User with the Junifer account number.
+
+---
+
 ## References
 
 - FE development guide: `product-engineering/fe-development-guide.md` (this repo)
 - BigQuery data guide: `CLAUDE.md` (this repo)
+- Release process: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/4669505743/Release+process+documentation+be-microservices
+- HowTo Backend: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/3638624274/HowTo+Backend
+- HTTP gateway endpoints: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/3657891871/How+to+create+a+HTTP+gateway+endpoint
+- gRPC test calls: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/3682205705/How+to+make+a+test+call+to+a+gRPC+endpoint
+- GCP PubSub scheduled jobs: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/4441702415/HowTo+create+a+scheduled+job+in+GCP+using+Google+PubSub
+- Modularisation pattern: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/4773773340/How+to+modularise
+- Syncing accounts from Junifer: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/3914268673/How+to+sync+an+account+from+Junifer
+- On-demand/staging logs: https://soenergy.atlassian.net/wiki/spaces/SoTech/pages/4508581953/How+to+view+logs+of+On-Demand+and+Staging+Environments

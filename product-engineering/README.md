@@ -6,8 +6,9 @@ Institutional knowledge for working across the So Energy engineering stack. Use 
 
 | File | What It Covers |
 |------|---------------|
-| `fe-development-guide.md` | Nova, SMBP, IMBP — Vue test conventions, PR process, CI checks, build gotchas, SonarCloud, Vercel previews, branch naming |
-| `be-development-guide.md` | be-microservices — Kotlin/Flyway, protobuf, feature flags, on-demand CI, deployment order, codegen, delivery process |
+| `fe-development-guide.md` | Nova, SMBP, IMBP, Nexus — Vue conventions, PR process, CI checks, testing, SonarCloud, Vercel previews, branch naming, GraphQL, dependencies |
+| `be-development-guide.md` | be-microservices — Kotlin/Flyway, protobuf, feature flags, on-demand CI, deployment order, codegen, delivery process, release process |
+| `prodeng-status.md` | Generic `/prodeng` Claude Code command — tracks in-flight Jira stories, GitHub PRs, CI status, reviews, blockers, QA evidence, preview environments |
 
 ## How to use with Claude Code
 

@@ -194,6 +194,13 @@ gh run list --branch <branch-name>
 
 ---
 
+## PR Process
+
+### Approvals
+- BE PRs require **1 approval** (unlike FE which requires 2)
+
+---
+
 ## Codegen
 
 ### `codegen:backoffice` is manual
